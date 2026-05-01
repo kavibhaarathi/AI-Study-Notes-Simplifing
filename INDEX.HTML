@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NoteWise — AI Study Notes Simplifier</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --accent: #e8d5a3;
+    --accent2: #c9a96e;
+    --text: #f0ece4;
+    --muted: #888;
+    --green: #4ade80;
+    --blue: #60a5fa;
+    --pink: #f472b6;
+    --orange: #fb923c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.4;
+  }
+
+  /* Ambient glow */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 500px;
+    background: radial-gradient(ellipse, rgba(232,213,163,0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ---- HEADER ---- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 3rem;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: rgba(13,13,13,0.85);
+    backdrop-filter: blur(16px);
+    z-index: 100;
+    animation: slideDown 0.6s ease both;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+  }
+
+  .logo span {
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .header-badge {
+    font-size: 11px;
+    font-weight: 500;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 100px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ---- HERO ---- */
+  .hero {
+    text-align: center;
+    padding: 6rem 2rem 4rem;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.8s ease 0.2s both;
+  }
+
+  .hero-tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    border: 1px solid rgba(232,213,163,0.2);
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 2rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.8rem, 6vw, 5rem);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -1.5px;
+    margin-bottom: 1.5rem;
+    color: var(--text);
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .hero p {
+    font-size: 1.1rem;
+    color: var(--muted);
+    max-width: 520px;
+    margin: 0 auto 3rem;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* ---- MODES ROW ---- */
+  .modes-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 3rem;
+    animation: fadeUp 0.8s ease 0.4s both;
+    position: relative;
+    z-index: 1;
+  }
+
+  .mode-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 18px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mode-btn:hover {
+    border-color: var(--accent2);
+    color: var(--accent);
+  }
+
+  .mode-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0d0d0d;
+    font-weight: 700;
+  }
+
+  .mode-btn .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ---- MAIN LAYOUT ---- */
+  .app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem 4rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.8s ease 0.5s both;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title .indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent2);
+  }
+
+  .char-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 1.25rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.8;
+    resize: none;
+    min-height: 340px;
+  }
+
+  textarea::placeholder {
+    color: #3a3a3a;
+    font-style: italic;
+  }
+
+  .panel-footer {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  /* ---- LEVEL SELECTOR ---- */
+  .level-label {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 400;
+    white-space: nowrap;
+  }
+
+  .level-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    outline: none;
+    flex: 1;
+  }
+
+  /* ---- CONVERT BUTTON ---- */
+  .convert-btn {
+    background: var(--accent);
+    border: none;
+    color: #0d0d0d;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px 24px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    letter-spacing: -0.2px;
+  }
+
+  .convert-btn:hover {
+    background: var(--accent2);
+    transform: translateY(-1px);
+  }
+
+  .convert-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ---- OUTPUT PANEL ---- */
+  .output-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    min-height: 480px;
+  }
+
+  .output-body {
+    flex: 1;
+    padding: 1.25rem;
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 1.9;
+    color: var(--text);
+  }
+
+  .output-body.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+    color: var(--muted);
+    font-style: italic;
+    text-align: center;
+  }
+
+  .empty-icon {
+    font-size: 2.5rem;
+    opacity: 0.3;
+  }
+
+  /* Formatted output styles */
+  .output-body h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 1.2rem 0 0.6rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+  }
+
+  .output-body h3 {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent2);
+    margin: 1rem 0 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .output-body p {
+    margin-bottom: 0.8rem;
+    color: #ccc;
+  }
+
+  .output-body ul {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 1rem;
+  }
+
+  .output-body ul li {
+    padding: 5px 0 5px 20px;
+    position: relative;
+    color: #ccc;
+  }
+
+  .output-body ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent2);
+    font-size: 12px;
+  }
+
+  .keyword-tag {
+    display: inline-block;
+    background: rgba(232,213,163,0.1);
+    border: 1px solid rgba(232,213,163,0.2);
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin: 2px;
+  }
+
+  .summary-box {
+    background: rgba(232,213,163,0.05);
+    border: 1px solid rgba(232,213,163,0.15);
+    border-left: 3px solid var(--accent2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 1rem;
+    font-style: italic;
+    color: var(--accent);
+    font-size: 14px;
+  }
+
+  /* ---- LOADING ---- */
+  .loading-bar {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 2px;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-top-color: #0d0d0d;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---- STATS ROW ---- */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto 2rem;
+    padding: 0 2rem;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.8s ease 0.6s both;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .stat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ---- ACTION BUTTONS ---- */
+  .action-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .action-btn:hover {
+    border-color: var(--accent2);
+    color: var(--accent);
+  }
+
+  .actions-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* ---- API KEY MODAL ---- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2.5rem;
+    width: 90%;
+    max-width: 480px;
+    animation: scaleIn 0.3s ease;
+  }
+
+  .modal h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--accent);
+  }
+
+  .modal p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+    line-height: 1.7;
+  }
+
+  .modal input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    outline: none;
+    margin-bottom: 1rem;
+    transition: border-color 0.2s;
+  }
+
+  .modal input:focus {
+    border-color: var(--accent2);
+  }
+
+  .modal-btn {
+    width: 100%;
+    background: var(--accent);
+    border: none;
+    color: #0d0d0d;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .modal-btn:hover { background: var(--accent2); }
+
+  .modal-note {
+    font-size: 11px;
+    color: #555;
+    text-align: center;
+    margin-top: 1rem;
+  }
+
+  .modal-note a { color: var(--accent2); text-decoration: none; }
+
+  /* ---- TOAST ---- */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+    padding: 10px 20px;
+    border-radius: 100px;
+    z-index: 600;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ---- EXAMPLE PILLS ---- */
+  .examples-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.8s ease 0.45s both;
+  }
+
+  .example-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .example-pill:hover {
+    border-color: var(--accent2);
+    color: var(--accent);
+  }
+
+  /* ---- ANIMATIONS ---- */
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 768px) {
+    header { padding: 1rem 1.5rem; }
+    .hero { padding: 3rem 1rem 2rem; }
+    .app-container { grid-template-columns: 1fr; padding: 0 1rem 3rem; }
+    .stats-row { grid-template-columns: 1fr 1fr; padding: 0 1rem; }
+    .hero h1 { font-size: 2.2rem; }
+  }
+
+  /* ---- SCROLLBAR ---- */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ---- KEY CONCEPTS CHIP ---- */
+  .concepts-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- API Key Modal -->
+<div class="modal-overlay" id="apiModal">
+  <div class="modal">
+    <h2>Welcome to NoteWise</h2>
+    <p>Enter your Google Gemini API key to get started. Your key is stored only in this browser session and never sent anywhere except Google's API.</p>
+    <input type="password" id="apiKeyInput" placeholder="AIza..." autocomplete="off" />
+    <button class="modal-btn" onclick="saveKey()">Start Simplifying →</button>
+    <p class="modal-note">Get a free key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a></p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Header -->
+<header>
+  <div class="logo">Note<span>Wise</span></div>
+  <div class="header-badge">Powered by Gemini AI</div>
+  <button class="action-btn" onclick="changeKey()" style="font-size:11px;">⚙ API Key</button>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <span class="hero-tag">✦ Smart Notes Converter</span>
+  <h1>Turn Complex Notes<br/>into <em>Clear Knowledge</em></h1>
+  <p>Paste your messy study notes — get back clean summaries, key concepts, bullet points, and flashcard-ready content.</p>
+</section>
+
+<!-- Mode buttons -->
+<div class="modes-row">
+  <button class="mode-btn active" data-mode="simplify" onclick="setMode(this)"><span class="dot"></span>Simplify</button>
+  <button class="mode-btn" data-mode="bullet" onclick="setMode(this)"><span class="dot"></span>Bullet Points</button>
+  <button class="mode-btn" data-mode="flashcard" onclick="setMode(this)"><span class="dot"></span>Flashcards</button>
+  <button class="mode-btn" data-mode="eli5" onclick="setMode(this)"><span class="dot"></span>ELI5</button>
+  <button class="mode-btn" data-mode="mindmap" onclick="setMode(this)"><span class="dot"></span>Mind Map</button>
+</div>
+
+<!-- Quick examples -->
+<div class="examples-row">
+  <span class="example-pill" onclick="loadExample('photosynthesis')">🌱 Photosynthesis</span>
+  <span class="example-pill" onclick="loadExample('newton')">🍎 Newton's Laws</span>
+  <span class="example-pill" onclick="loadExample('french')">🏛 French Revolution</span>
+  <span class="example-pill" onclick="loadExample('dna')">🧬 DNA Replication</span>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-label">Words Input</div>
+    <div class="stat-value" id="wordCount">0</div>
+    <div class="stat-sub">words detected</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Active Mode</div>
+    <div class="stat-value" id="modeDisplay" style="font-size:1.1rem;margin-top:4px;">Simplify</div>
+    <div class="stat-sub">conversion mode</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Reading Level</div>
+    <div class="stat-value" id="levelDisplay" style="font-size:1.1rem;margin-top:4px;">High School</div>
+    <div class="stat-sub">target audience</div>
+  </div>
+</div>
+
+<!-- App panels -->
+<div class="app-container">
+  <!-- Input Panel -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title"><span class="indicator"></span>Your Raw Notes</div>
+      <span class="char-count" id="charCount">0 chars</span>
+    </div>
+    <textarea id="notesInput" placeholder="Paste your complex study notes here...
+
+e.g.: The mitochondria is responsible for producing ATP through oxidative phosphorylation, a process involving the electron transport chain and chemiosmosis across the inner mitochondrial membrane..." oninput="updateStats()"></textarea>
+    <div class="panel-footer">
+      <div style="display:flex;gap:8px;align-items:center;flex:1;">
+        <span class="level-label">Level:</span>
+        <select class="level-select" id="levelSelect" onchange="updateLevelDisplay()">
+          <option value="child">Child (age 8–10)</option>
+          <option value="middle">Middle School</option>
+          <option value="highschool" selected>High School</option>
+          <option value="college">College</option>
+          <option value="expert">Expert</option>
+        </select>
+      </div>
+      <button class="convert-btn" id="convertBtn" onclick="convertNotes()">
+        <span id="btnText">Convert</span>
+        <span>→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Output Panel -->
+  <div class="output-panel panel">
+    <div class="panel-header">
+      <div class="panel-title"><span class="indicator" style="background:var(--green)"></span>Smart Output</div>
+      <div class="actions-group">
+        <button class="action-btn" id="copyBtn" onclick="copyOutput()" style="display:none;">⧉ Copy</button>
+        <button class="action-btn" id="downloadBtn" onclick="downloadOutput()" style="display:none;">↓ Save</button>
+      </div>
+    </div>
+    <div id="loadingBar" style="display:none;padding:0 1.25rem;">
+      <div class="loading-bar"></div>
+    </div>
+    <div class="output-body empty" id="outputBody">
+      <div class="empty-icon">✦</div>
+      <div>Your simplified notes will appear here</div>
+      <div style="font-size:12px;margin-top:4px;">Choose a mode, paste notes, and hit Convert</div>
+    </div>
+    <div class="panel-footer" id="outputFooter" style="display:none;">
+      <span class="char-count" id="outputWordCount"></span>
+      <span style="font-size:11px;color:var(--muted)">Generated by Gemini 1.5 Flash</span>
+    </div>
+  </div>
+</div>
+
+<script>
+let apiKey = '';
+let currentMode = 'simplify';
+let lastOutput = '';
+
+const examples = {
+  photosynthesis: `Photosynthesis is a process used by plants and other organisms to convert light energy into chemical energy that, through cellular respiration, can later be released to fuel the organism's activities. In plant cells, the process involves the absorption of CO2 and H2O through stomata and roots, the light-dependent reactions occurring in the thylakoid membranes where ATP and NADPH are produced, and the Calvin cycle (light-independent reactions) in the stroma. The overall equation is 6CO2 + 6H2O + light energy → C6H12O6 + 6O2. Chlorophyll a and b are primary photosynthetic pigments, while carotenoids serve as accessory pigments. Photorespiration in C3 plants reduces efficiency under high temperatures.`,
+
+  newton: `Newton's three laws of motion form the foundation of classical mechanics. First law (inertia): An object at rest stays at rest, and an object in motion stays in motion with the same speed and direction unless acted upon by an unbalanced external force. Second law: The acceleration of an object is directly proportional to the net force acting on it and inversely proportional to its mass (F=ma). Third law: For every action there is an equal and opposite reaction. These laws apply in inertial reference frames. At relativistic speeds, Einstein's special relativity replaces Newtonian mechanics. Momentum p=mv is conserved in closed systems. Impulse-momentum theorem: Ft = Δmv.`,
+
+  french: `The French Revolution (1789–1799) was a period of radical political and societal transformation. Causes included fiscal crisis (national debt from American Revolutionary War), social inequality (Three Estates system with bourgeoisie and peasants oppressed), Enlightenment ideas (Locke, Rousseau, Voltaire), and food shortages. Key events: Estates-General convened May 1789, Tennis Court Oath, Storming of the Bastille July 14, Declaration of Rights of Man August 1789, Women's March on Versailles, Constitutional monarchy 1791, First French Republic 1792, Reign of Terror 1793–94 under Robespierre, Thermidorian Reaction, Directory 1795–99, Napoleon's coup 18 Brumaire.`,
+
+  dna: `DNA replication is a semiconservative process occurring during S phase of the cell cycle. The double helix unwinds at the origin of replication by helicase, creating a replication fork. Primase synthesizes RNA primers (3-8 nucleotides). DNA polymerase III adds nucleotides 5' to 3'. Leading strand synthesized continuously; lagging strand synthesized in Okazaki fragments. RNase H removes RNA primers, DNA polymerase I fills gaps, DNA ligase seals nicks. Topoisomerase relieves supercoiling ahead of the fork. In eukaryotes, multiple origins fire simultaneously. Telomerase extends telomeres in germ cells. Error rate ~1 in 10^9 bases after proofreading.`
+};
+
+const modePrompts = {
+  simplify: (text, level) => `You are an expert educator. Simplify the following study notes for a ${level} student. 
+
+Format your response as:
+## Quick Summary
+[2-3 sentence summary in a <div class="summary-box">]
+
+## Key Concepts
+[list main concepts as <ul><li> items]
+
+## Simplified Explanation
+[clear explanation in plain language using <p> tags]
+
+## Key Terms
+[important vocabulary as <span class="keyword-tag"> inside a <div class="concepts-wrap">]
+
+Notes to simplify:
+${text}`,
+
+  bullet: (text, level) => `Convert these study notes into clear, organized bullet points for a ${level} student.
+
+Format as:
+## Main Topics
+[organized <ul><li> bullet points grouped by theme]
+
+## Quick Reference
+[10 most important facts as <ul><li> items]
+
+## Key Terms
+[important words as <span class="keyword-tag"> inside <div class="concepts-wrap">]
+
+Notes:
+${text}`,
+
+  flashcard: (text, level) => `Create 8-10 study flashcards from these notes at ${level} level.
+
+For each flashcard, format as:
+<div style="background:rgba(232,213,163,0.05);border:1px solid rgba(232,213,163,0.15);border-radius:10px;padding:14px;margin-bottom:12px;">
+<h3>Q: [question]</h3>
+<p><strong style="color:var(--accent)">A:</strong> [concise answer]</p>
+</div>
+
+Then add:
+## Study Tips
+[3 tips for remembering this material]
+
+Notes:
+${text}`,
+
+  eli5: (text, level) => `Explain these study notes like I'm 5 years old (ELI5), using very simple words, fun analogies, and relatable examples. Keep a friendly, encouraging tone.
+
+Format as:
+## The Simple Version
+[fun, friendly explanation using <p> tags with analogies]
+
+## Think of it like...
+[creative analogy in a <div class="summary-box">]
+
+## Remember These!
+[5 key takeaways as <ul><li> items]
+
+Notes:
+${text}`,
+
+  mindmap: (text, level) => `Create a text-based mind map outline from these notes for a ${level} student.
+
+Format as a hierarchical outline using:
+## Central Topic
+[main topic]
+
+## Main Branches
+[organized as nested <ul><li> items, 3-4 main branches with 2-4 sub-points each]
+
+## Connections
+[2-3 key relationships between concepts as <p> items]
+
+## Summary
+[one sentence overview in a <div class="summary-box">]
+
+Notes:
+${text}`
+};
+
+const levelLabels = {
+  child: 'Child (8–10)',
+  middle: 'Middle School',
+  highschool: 'High School',
+  college: 'College',
+  expert: 'Expert'
+};
+
+function saveKey() {
+  const input = document.getElementById('apiKeyInput').value.trim();
+  if (!input || !input.startsWith('AIza')) {
+    showToast('⚠ Please enter a valid Gemini API key');
+    return;
+  }
+  apiKey = input;
+  document.getElementById('apiModal').style.display = 'none';
+  showToast('✓ API key saved — ready to go!');
+}
+
+function changeKey() {
+  document.getElementById('apiKeyInput').value = apiKey;
+  document.getElementById('apiModal').style.display = 'flex';
+}
+
+function setMode(btn) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentMode = btn.dataset.mode;
+  document.getElementById('modeDisplay').textContent = btn.textContent.trim();
+}
+
+function updateLevelDisplay() {
+  const val = document.getElementById('levelSelect').value;
+  document.getElementById('levelDisplay').textContent = levelLabels[val];
+}
+
+function updateStats() {
+  const text = document.getElementById('notesInput').value;
+  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  document.getElementById('wordCount').textContent = words;
+  document.getElementById('charCount').textContent = text.length + ' chars';
+}
+
+function loadExample(key) {
+  document.getElementById('notesInput').value = examples[key];
+  updateStats();
+  showToast('✓ Example loaded — click Convert!');
+}
+
+async function convertNotes() {
+  const text = document.getElementById('notesInput').value.trim();
+  if (!text) { showToast('⚠ Please paste some notes first'); return; }
+  if (!apiKey) { document.getElementById('apiModal').style.display = 'flex'; return; }
+
+  const level = levelLabels[document.getElementById('levelSelect').value];
+  const prompt = modePrompts[currentMode](text, level);
+
+  const btn = document.getElementById('convertBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Processing...';
+
+  document.getElementById('loadingBar').style.display = 'block';
+  document.getElementById('outputBody').className = 'output-body';
+  document.getElementById('outputBody').innerHTML = '<p style="color:var(--muted);font-style:italic;text-align:center;padding:2rem;">Gemini is thinking...</p>';
+  document.getElementById('copyBtn').style.display = 'none';
+  document.getElementById('downloadBtn').style.display = 'none';
+  document.getElementById('outputFooter').style.display = 'none';
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.error) throw new Error(data.error.message);
+
+    let result = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No output generated.';
+
+    // Convert markdown to HTML
+    result = result
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^\* (.+)$/gm, '<li>$1</li>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g, match => `<ul>${match}</ul>`)
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/^(?!<[hup])/gm, '')
+      .trim();
+
+    if (!result.startsWith('<')) result = '<p>' + result + '</p>';
+
+    lastOutput = result;
+
+    document.getElementById('outputBody').className = 'output-body';
+    document.getElementById('outputBody').innerHTML = result;
+
+    const words = result.replace(/<[^>]*>/g, ' ').trim().split(/\s+/).length;
+    document.getElementById('outputWordCount').textContent = `~${words} words generated`;
+    document.getElementById('outputFooter').style.display = 'flex';
+    document.getElementById('copyBtn').style.display = 'flex';
+    document.getElementById('downloadBtn').style.display = 'flex';
+
+    showToast('✓ Notes converted successfully!');
+
+  } catch (err) {
+    document.getElementById('outputBody').className = 'output-body empty';
+    document.getElementById('outputBody').innerHTML = `<div class="empty-icon">⚠</div><div style="color:#f87171;">Error: ${err.message}</div><div style="font-size:12px;color:var(--muted);margin-top:4px;">Check your API key and try again.</div>`;
+    showToast('✗ Error: ' + err.message.slice(0, 50));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span id="btnText">Convert</span><span>→</span>';
+    document.getElementById('loadingBar').style.display = 'none';
+  }
+}
+
+function copyOutput() {
+  const text = document.getElementById('outputBody').innerText;
+  navigator.clipboard.writeText(text).then(() => showToast('✓ Copied to clipboard!'));
+}
+
+function downloadOutput() {
+  const text = document.getElementById('outputBody').innerText;
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `notewise-${currentMode}-${Date.now()}.txt`;
+  a.click();
+  showToast('✓ Notes downloaded!');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Enter key in API input
+document.getElementById('apiKeyInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveKey();
+});
+</script>
+</body>
+</html>
