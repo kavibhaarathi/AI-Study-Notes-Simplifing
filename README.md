@@ -1,4 +1,4 @@
-[README.md](https://github.com/user-attachments/files/27271000/README.md)
+[README.md](https://github.com/user-attachments/files/27271057/README.md)
 # NoteWise — AI Study Notes Simplifier 🧠✦
 
 > Transform complex study notes into clear, structured knowledge using Google Gemini AI.
@@ -34,7 +34,7 @@
 
 ## 🚀 Demo
 
-> 🔗 Live Site: `https://AI-Study-Notes-Simplifing.github.io/notewise`
+> 🔗 Live Site: `https://kavibhaarathi.github.io/notewise`
 
 ---
 
@@ -66,7 +66,7 @@ notewise/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/AI-Study-Notes-Simplifing/notewise.git
+git clone https://github.com/kavibhaarathi/notewise.git
 cd notewise
 ```
 
@@ -106,7 +106,7 @@ git init
 git add .
 git commit -m "Initial commit — NoteWise"
 git branch -M main
-git remote add origin https://github.com/AI-Study-Notes-Simplifing/notewise.git
+git remote add origin https://github.com/kavibhaarathi/notewise.git
 git push -u origin main
 ```
 
@@ -117,7 +117,7 @@ git push -u origin main
 6. Your site is live at:
 
 ```
-https://AI-Study-Notes-Simplifing.github.io/notewise
+https://kavibhaarathi.github.io/notewise
 ```
 
 ---
