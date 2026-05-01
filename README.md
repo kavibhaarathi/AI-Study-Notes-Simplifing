@@ -1,4 +1,4 @@
-[README.md](https://github.com/user-attachments/files/27270316/README.md)
+[README.md](https://github.com/AI-Study-Notes-Simplifing/files/27270316/README.md)
 # NoteWise — AI Study Notes Simplifier 🧠✦
 
 > Transform complex study notes into clear, structured knowledge using Google Gemini AI.
